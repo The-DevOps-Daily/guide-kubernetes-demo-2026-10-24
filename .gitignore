@@ -1,3 +1,5 @@
 # TLS files created in Part 6. Never commit private keys.
 *.key
 *.crt
+# The encryption key created in Part 10
+10-security/encryption/encryption-config.yaml

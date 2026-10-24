@@ -39,7 +39,7 @@ check() {
 while IFS= read -r f; do
   check "$f" kubectl apply --dry-run=server --validate=strict -f "$f"
 done < <(find . -name '*.yaml' -not -path './.github/*' -not -path './06-config/kustomize/*' \
-  -not -name kind-config.yaml -not -name monitoring-values.yaml | sort)
+  -not -path './10-security/encryption/*' -not -name kind-config.yaml -not -name monitoring-values.yaml | sort)
 
 check 06-config/kustomize bash -c 'kubectl kustomize 06-config/kustomize | kubectl apply --dry-run=server --validate=strict -f -'
 check 09-observability/monitoring-values.yaml bash -c 'helm template monitoring oci://ghcr.io/prometheus-community/charts/kube-prometheus-stack --version 92.11.0 --namespace monitoring --values 09-observability/monitoring-values.yaml > /dev/null'

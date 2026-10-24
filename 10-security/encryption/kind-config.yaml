@@ -1,0 +1,24 @@
+# A one-node kind cluster whose API server encrypts Secrets at rest.
+# Create encryption-config.yaml from the template first (see Part 10).
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: k8s-guide-enc
+nodes:
+  - role: control-plane
+    extraMounts:
+      - hostPath: ./10-security/encryption/encryption-config.yaml
+        containerPath: /etc/kubernetes/encryption/config.yaml
+        readOnly: true
+    kubeadmConfigPatches:
+      - |
+        kind: ClusterConfiguration
+        apiServer:
+          extraArgs:
+            - name: encryption-provider-config
+              value: /etc/kubernetes/encryption/config.yaml
+          extraVolumes:
+            - name: encryption
+              hostPath: /etc/kubernetes/encryption
+              mountPath: /etc/kubernetes/encryption
+              readOnly: true
+              pathType: DirectoryOrCreate

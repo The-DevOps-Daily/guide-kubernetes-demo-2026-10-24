@@ -1,0 +1,13 @@
+# Encrypt Secrets before the API server writes them to etcd.
+# The first provider encrypts new writes; the others can still decrypt older data.
+apiVersion: apiserver.config.k8s.io/v1
+kind: EncryptionConfiguration
+resources:
+  - resources:
+      - secrets
+    providers:
+      - secretbox:
+          keys:
+            - name: key1
+              secret: ENCRYPTION_KEY # 32 random bytes, base64-encoded
+      - identity: {} # read Secrets that were stored before encryption was turned on

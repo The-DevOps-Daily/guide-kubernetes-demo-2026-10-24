@@ -7,8 +7,8 @@ spec:
   podSelector: {}
   policyTypes: ['Ingress']
 ---
-# 2. podinfo accepts HTTP from pods labelled role=client in this namespace
-#    and from the gateway-infra namespace
+# 2. podinfo accepts HTTP from pods labeled role=client in this namespace,
+#    from the gateway-infra namespace and from Prometheus (Part 9)
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -26,6 +26,13 @@ spec:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: gateway-infra
+        # namespace AND pod label in one entry: only the Prometheus pods in monitoring
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
       ports:
         - protocol: TCP
           port: 9898

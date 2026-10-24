@@ -1,6 +1,7 @@
 # Part 10: security. Pod Security Admission, RBAC, NetworkPolicy, admission policies, secrets and images.
 cluster
 state_p08
+state_p09
 must kubectl delete hpa podinfo
 must kubectl scale deployment podinfo --replicas=3
 must kubectl rollout status deployment/podinfo --timeout=180s
@@ -60,13 +61,31 @@ cap p10-np-kind 'kubectl apply -f 10-security/networkpolicy-kind-gateway.yaml'
 must sleep 5
 cap p10-after-kind-np 'curl -s -m 5 --resolve podinfo.k8s-guide.example:80:$GW_IP http://podinfo.k8s-guide.example/version; echo "curl exit code: $?"'
 cap p10-np-get 'kubectl get networkpolicy'
+must 'kubectl port-forward -n monitoring service/monitoring-kube-prometheus-prometheus 9090:9090 > /dev/null 2>&1 &'
+must sleep 45
+cap p10-prom-up "curl -s localhost:9090/api/v1/query --data-urlencode 'query=up{job=\"podinfo\"}' | jq -r '.data.result[] | \"\\(.metric.pod) up=\\(.value[1])\"'"
+must 'pkill -f "kubectl port-forward"'
 
 cap p10-vap-apply 'kubectl apply -f 10-security/admission-policy.yaml'
 must sleep 5
 cap p10-vap-deny 'kubectl apply -f 10-security/latest-tag-pod.yaml'
 cap p10-vap-allow 'kubectl apply -f 10-security/client.yaml --dry-run=server'
+cap p10-vap-debug 'kubectl debug client --image=busybox:latest --profile=restricted -- true'
+must '[ -z "$(kubectl get validatingadmissionpolicy pinned-images -o jsonpath={.status.typeChecking.expressionWarnings})" ]'
 
 cap p10-etcd 'kubectl -n kube-system exec etcd-k8s-guide-control-plane -- etcdctl --endpoints=https://127.0.0.1:2379 --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/server.crt --key=/etc/kubernetes/pki/etcd/server.key get /registry/secrets/demo/podinfo-tls --print-value-only | strings | grep "PRIVATE KEY"'
+
+# Encryption at rest on a second, one-node cluster
+cap p10e-key "sed \"s|ENCRYPTION_KEY|\$(head -c 32 /dev/urandom | base64)|\" 10-security/encryption/encryption-config.template.yaml > 10-security/encryption/encryption-config.yaml"
+cap p10e-create 'kind create cluster --config 10-security/encryption/kind-config.yaml'
+must kubectl wait --for=condition=Ready nodes --all --timeout=180s
+must kubectl wait -n kube-system --for=condition=Ready pods --all --timeout=180s
+cap p10e-secret 'kubectl create secret generic demo-secret --from-literal=password=not-in-plain-text'
+cap p10e-etcd 'kubectl -n kube-system exec etcd-k8s-guide-enc-control-plane -- etcdctl --endpoints=https://127.0.0.1:2379 --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/server.crt --key=/etc/kubernetes/pki/etcd/server.key get /registry/secrets/default/demo-secret --print-value-only | head -c 26; echo'
+cap p10e-grep 'kubectl -n kube-system exec etcd-k8s-guide-enc-control-plane -- etcdctl --endpoints=https://127.0.0.1:2379 --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/server.crt --key=/etc/kubernetes/pki/etcd/server.key get /registry/secrets/default/demo-secret --print-value-only | grep -c not-in-plain-text'
+cap p10e-read "kubectl get secret demo-secret -o jsonpath='{.data.password}' | base64 -d; echo"
+cap p10e-delete 'kind delete cluster --name k8s-guide-enc'
+cap p10e-context 'kubectl config use-context kind-k8s-guide'
 
 cap p10-image-id "kubectl get pods -l app=podinfo -o jsonpath='{.items[0].status.containerStatuses[0].imageID}{\"\\n\"}'"
 cap p10-cosign 'cosign verify ghcr.io/stefanprodan/podinfo:6.15.0 --certificate-identity=https://github.com/stefanprodan/podinfo/.github/workflows/release.yml@refs/tags/6.15.0 --certificate-oidc-issuer=https://token.actions.githubusercontent.com > /dev/null'

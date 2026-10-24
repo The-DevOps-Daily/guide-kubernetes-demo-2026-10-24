@@ -93,6 +93,12 @@ metrics_server() {
   must kubectl -n kube-system rollout status deployment/metrics-server --timeout=180s
 }
 
+# The state at the end of Part 9: plus the monitoring stack scraping podinfo (call after state_p08).
+state_p09() {
+  must helm install monitoring oci://ghcr.io/prometheus-community/charts/kube-prometheus-stack --version 92.11.0 --namespace monitoring --create-namespace --values 09-observability/monitoring-values.yaml --wait --timeout 10m
+  must kubectl apply -f 09-observability/servicemonitor.yaml -f 09-observability/prometheusrule.yaml
+}
+
 # The state at the end of Part 8: resources, quotas, autoscaling and metrics-server.
 state_p08() {
   state_p07

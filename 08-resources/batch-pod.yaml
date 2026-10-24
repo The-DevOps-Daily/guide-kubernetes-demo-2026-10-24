@@ -9,7 +9,7 @@ spec:
       operator: Equal
       value: batch
       effect: NoSchedule
-  # ... and required to run on a node labelled workload=batch
+  # ... and required to run on a node labeled workload=batch
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:

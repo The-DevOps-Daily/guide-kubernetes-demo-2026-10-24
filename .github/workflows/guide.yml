@@ -27,7 +27,7 @@ jobs:
           PARTS: ${{ inputs.parts }}
         run: |
           if [ -z "$PARTS" ]; then
-            PARTS='["01","02","03","04","05","06","07","08","09","10","10e"]'
+            PARTS='["01","02","03","04","05","06","07","08","09","10"]'
           fi
           echo "parts=$PARTS" >> "$GITHUB_OUTPUT"
 

@@ -53,7 +53,8 @@ cap p06-tls-renew 'openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime
 cap p06-tls-update 'kubectl create secret tls podinfo-tls --cert=tls.crt --key=tls.key --dry-run=client -o yaml | kubectl apply -f -'
 cap p06-tls-serial-new 'openssl x509 -in tls.crt -noout -serial'
 cap p06-tls-restart 'kubectl rollout restart deployment/podinfo'
-must kubectl rollout status deployment/podinfo --timeout=180s
+cap p06-tls-rollout 'kubectl rollout status deployment/podinfo'
+settle app=podinfo
 cap p06-pf-tls2 'kubectl port-forward deployment/podinfo 8443:8443 > /dev/null 2>&1 &'
 must sleep 3
 cap p06-tls-served 'openssl s_client -connect localhost:8443 < /dev/null 2>/dev/null | openssl x509 -noout -serial'

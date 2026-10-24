@@ -13,8 +13,10 @@ cache_ready
 cap p07-write 'curl -s -X POST -d "hello from the cache" localhost:8080/cache/greeting'
 cap p07-read "curl -s -w ' [%{http_code}]\n' localhost:8080/cache/greeting"
 cap p07-delete-cache 'kubectl delete pod -l app=cache'
-must kubectl rollout status deployment/cache --timeout=120s
+cap p07-cache-rollout 'kubectl rollout status deployment/cache'
 cache_ready
+cap p07-check-write 'curl -s -X POST -d ok localhost:8080/cache/check'
+cap p07-check-read "curl -s -w ' [%{http_code}]\n' localhost:8080/cache/check"
 cap p07-read-lost "curl -s -w ' [%{http_code}]\n' localhost:8080/cache/greeting"
 
 cap p07-sc 'kubectl get storageclass'
@@ -38,8 +40,9 @@ cap p07-sts-get 'kubectl get statefulset,pods,pvc -l app=cache'
 cache_ready
 cap p07-sts-write 'curl -s -X POST -d "survives restarts" localhost:8080/cache/greeting'
 cap p07-sts-delete-pod 'kubectl delete pod cache-0'
-cap p07-sts-wait 'kubectl wait --for=condition=Ready pod/cache-0 --timeout=120s'
+cap p07-sts-wait 'kubectl rollout status statefulset/cache'
 cache_ready
+cap p07-sts-check "curl -s -X POST -d ok localhost:8080/cache/check && curl -s -w ' [%{http_code}]\n' localhost:8080/cache/check"
 cap p07-sts-read "curl -s -w ' [%{http_code}]\n' localhost:8080/cache/greeting"
 cap p07-sts-aof 'kubectl exec cache-0 -- ls -l /data/appendonlydir'
 cap p07-sts-cli 'kubectl exec cache-0 -- valkey-cli GET greeting'
@@ -49,7 +52,7 @@ cap p07-scale-zero 'kubectl scale statefulset cache --replicas=0'
 must 'kubectl wait --for=delete pod/cache-0 --timeout=120s'
 cap p07-pvc-kept 'kubectl get pvc'
 cap p07-scale-one 'kubectl scale statefulset cache --replicas=1'
-must kubectl rollout status statefulset/cache --timeout=120s
+cap p07-scale-rollout 'kubectl rollout status statefulset/cache'
 cache_ready
 cap p07-read-again "curl -s -w ' [%{http_code}]\n' localhost:8080/cache/greeting"
 cap p07-node "kubectl get pod cache-0 -o jsonpath='{.spec.nodeName}{\"\\n\"}'"

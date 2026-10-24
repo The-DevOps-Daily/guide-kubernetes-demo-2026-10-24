@@ -1,0 +1,14 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: podinfo
+  labels:
+    release: monitoring # the chart's Prometheus selects ServiceMonitors with this label
+spec:
+  selector:
+    matchLabels:
+      app: podinfo # scrape the endpoints of Services with this label
+  endpoints:
+    - port: http # the named Service port
+      path: /metrics
+      interval: 15s

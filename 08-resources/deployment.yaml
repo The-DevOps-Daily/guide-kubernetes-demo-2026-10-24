@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: podinfo
+  labels:
+    app: podinfo
+spec:
+  replicas: 3
+  revisionHistoryLimit: 5
+  progressDeadlineSeconds: 120
+  minReadySeconds: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: podinfo
+  template:
+    metadata:
+      labels:
+        app: podinfo
+    spec:
+      containers:
+        - name: podinfo
+          image: ghcr.io/stefanprodan/podinfo:6.15.0
+          command: ['./podinfo']
+          args: ['--config-path=/podinfo/config']
+          env:
+            # One key from the ConfigMap each
+            - name: PODINFO_UI_MESSAGE
+              valueFrom:
+                configMapKeyRef:
+                  name: podinfo-config
+                  key: PODINFO_UI_MESSAGE
+            - name: PODINFO_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: podinfo-config
+                  key: PODINFO_LEVEL
+            # The cache password from the Secret, then used inside the next value
+            - name: CACHE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cache-auth
+                  key: password
+            - name: PODINFO_CACHE_SERVER
+              value: tcp://default:$(CACHE_PASSWORD)@cache:6379
+          ports:
+            - name: http
+              containerPort: 9898
+          volumeMounts:
+            - name: config
+              mountPath: /podinfo/config
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m # used for scheduling and as the HPA's 100 percent
+              memory: 64Mi
+            limits:
+              memory: 128Mi # no CPU limit: the container may use idle CPU on the node
+      # Prefer to put the replicas on different nodes
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: podinfo
+      volumes:
+        - name: config
+          configMap:
+            name: podinfo-config
+            items: # only this key becomes a file
+              - key: features.yaml
+                path: features.yaml

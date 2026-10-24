@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: podinfo-config
+data:
+  # Single values, used as environment variables
+  PODINFO_UI_MESSAGE: Hello from a ConfigMap
+  PODINFO_LEVEL: info
+  # A whole file, mounted into the container
+  features.yaml: |
+    newCheckout: false
+    banner: Autumn sale

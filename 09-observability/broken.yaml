@@ -1,0 +1,67 @@
+# Three Deployments that fail in three common ways
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bad-image
+  labels:
+    lab: broken
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bad-image
+  template:
+    metadata:
+      labels:
+        app: bad-image
+        lab: broken
+    spec:
+      containers:
+        - name: podinfo
+          image: ghcr.io/stefanprodan/podinfo:6.150.0 # a typo in the tag
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bad-config
+  labels:
+    lab: broken
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bad-config
+  template:
+    metadata:
+      labels:
+        app: bad-config
+        lab: broken
+    spec:
+      containers:
+        - name: podinfo
+          image: ghcr.io/stefanprodan/podinfo:6.15.0
+          command: ['./podinfo']
+          args: ['--random-delay-min=5', '--random-delay-max=1'] # an invalid combination
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: no-node
+  labels:
+    lab: broken
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: no-node
+  template:
+    metadata:
+      labels:
+        app: no-node
+        lab: broken
+    spec:
+      nodeSelector:
+        disktype: ssd # no node has this label
+      containers:
+        - name: podinfo
+          image: ghcr.io/stefanprodan/podinfo:6.15.0

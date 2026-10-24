@@ -1,0 +1,11 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: podinfo
+spec:
+  minAvailable: 2 # voluntary evictions must leave at least two ready pods
+  selector:
+    matchLabels:
+      app: podinfo
+  # Pods that are not ready can be evicted anyway, so they cannot block a drain
+  unhealthyPodEvictionPolicy: AlwaysAllow

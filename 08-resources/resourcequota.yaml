@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: demo-quota
+spec:
+  hard:
+    requests.cpu: '2' # sum of all CPU requests in the namespace
+    requests.memory: 2Gi
+    limits.memory: 4Gi
+    pods: '20'
+    persistentvolumeclaims: '5'
+    services.loadbalancers: '1'

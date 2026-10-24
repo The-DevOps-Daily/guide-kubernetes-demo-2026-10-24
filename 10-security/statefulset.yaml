@@ -1,0 +1,82 @@
+# A headless Service gives each StatefulSet pod a stable DNS name: cache-0.cache-headless
+apiVersion: v1
+kind: Service
+metadata:
+  name: cache-headless
+  labels:
+    app: cache
+spec:
+  clusterIP: None
+  selector:
+    app: cache
+  ports:
+    - name: valkey
+      port: 6379
+      targetPort: valkey
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: cache
+  labels:
+    app: cache
+spec:
+  serviceName: cache-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cache
+  # Keep the volumes when the StatefulSet is deleted or scaled down (the default)
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
+  template:
+    metadata:
+      labels:
+        app: cache
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999 # the image's "valkey" user
+        runAsGroup: 1000
+        fsGroup: 1000 # volumes are made writable for this group
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: valkey
+          image: valkey/valkey:9.1.2-alpine
+          # --appendonly yes writes every change to /data
+          args: ['--requirepass', '$(CACHE_PASSWORD)', '--appendonly', 'yes']
+          env:
+            - name: CACHE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cache-auth
+                  key: password
+          ports:
+            - name: valkey
+              containerPort: 6379
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ['ALL']
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+  # One PersistentVolumeClaim per pod: data-cache-0, data-cache-1, ...
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ['ReadWriteOnce']
+        resources:
+          requests:
+            storage: 1Gi

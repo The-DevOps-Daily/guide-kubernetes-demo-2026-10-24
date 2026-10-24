@@ -1,0 +1,35 @@
+# StorageClasses for managed clusters. Each needs that provider's CSI driver,
+# which the managed service installs for you.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ebs-gp3 # Amazon EKS with the EBS CSI driver add-on
+provisioner: ebs.csi.aws.com
+parameters:
+  type: gp3
+  encrypted: 'true'
+reclaimPolicy: Delete
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: pd-balanced # Google Kubernetes Engine
+provisioner: pd.csi.storage.gke.io
+parameters:
+  type: pd-balanced
+reclaimPolicy: Delete
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: azure-premium # Azure Kubernetes Service
+provisioner: disk.csi.azure.com
+parameters:
+  skuName: Premium_LRS
+reclaimPolicy: Delete
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer

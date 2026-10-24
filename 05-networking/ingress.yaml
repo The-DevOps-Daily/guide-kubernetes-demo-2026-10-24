@@ -1,0 +1,18 @@
+# The older Ingress API: still served, but needs an Ingress controller
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: podinfo
+spec:
+  ingressClassName: example # the IngressClass of the controller you install
+  rules:
+    - host: podinfo.k8s-guide.example
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: podinfo
+                port:
+                  number: 80

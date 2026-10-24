@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cache
+  labels:
+    app: cache
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cache
+  template:
+    metadata:
+      labels:
+        app: cache
+    spec:
+      containers:
+        - name: valkey
+          image: valkey/valkey:9.1.2-alpine
+          # Kubernetes replaces $(CACHE_PASSWORD) with the value of that variable
+          args: ['--requirepass', '$(CACHE_PASSWORD)']
+          env:
+            - name: CACHE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cache-auth
+                  key: password
+          ports:
+            - name: valkey
+              containerPort: 6379
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cache
+  labels:
+    app: cache
+spec:
+  selector:
+    app: cache
+  ports:
+    - name: valkey
+      port: 6379
+      targetPort: valkey

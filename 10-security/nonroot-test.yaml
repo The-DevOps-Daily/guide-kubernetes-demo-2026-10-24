@@ -1,0 +1,17 @@
+# Meets the restricted Pod Security Standard, but kubelet cannot check the user
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nonroot-test
+spec:
+  securityContext:
+    runAsNonRoot: true # no runAsUser, and the image names its user instead of a number
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: podinfo
+      image: ghcr.io/stefanprodan/podinfo:6.15.0
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ['ALL']

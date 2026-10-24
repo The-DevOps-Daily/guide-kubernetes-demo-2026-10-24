@@ -1,0 +1,50 @@
+# 1. Deny all incoming traffic to every pod in the namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+spec:
+  podSelector: {}
+  policyTypes: ['Ingress']
+---
+# 2. podinfo accepts HTTP from pods labelled role=client in this namespace
+#    and from the gateway-infra namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: podinfo-ingress
+spec:
+  podSelector:
+    matchLabels:
+      app: podinfo
+  policyTypes: ['Ingress']
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              role: client
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: gateway-infra
+      ports:
+        - protocol: TCP
+          port: 9898
+---
+# 3. The cache accepts connections only from podinfo
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cache-ingress
+spec:
+  podSelector:
+    matchLabels:
+      app: cache
+  policyTypes: ['Ingress']
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: podinfo
+      ports:
+        - protocol: TCP
+          port: 6379

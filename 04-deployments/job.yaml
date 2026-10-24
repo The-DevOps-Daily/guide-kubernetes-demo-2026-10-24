@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: report
+spec:
+  backoffLimit: 2 # retry a failed pod at most twice
+  ttlSecondsAfterFinished: 600 # delete the Job and its pod 10 minutes after it ends
+  template:
+    spec:
+      restartPolicy: Never
+      volumes:
+        - name: logs
+          emptyDir: {}
+      initContainers:
+        # A native sidecar: it does not keep the Job from completing
+        - name: log-shipper
+          image: busybox:1.38.0
+          restartPolicy: Always
+          command: ['sh', '-c', 'touch /logs/report.log && tail -f /logs/report.log']
+          volumeMounts:
+            - name: logs
+              mountPath: /logs
+      containers:
+        - name: report
+          image: busybox:1.38.0
+          command:
+            - sh
+            - -c
+            - for i in 1 2 3; do echo "processed batch $i" >> /logs/report.log; sleep 2; done
+          volumeMounts:
+            - name: logs
+              mountPath: /logs

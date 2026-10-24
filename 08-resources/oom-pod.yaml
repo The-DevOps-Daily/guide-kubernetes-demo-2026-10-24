@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: memory-hog
+spec:
+  containers:
+    - name: podinfo
+      image: ghcr.io/stefanprodan/podinfo:6.15.0
+      command: ['./podinfo']
+      args: ['--stress-memory=300'] # load 300 MB into memory at startup
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          memory: 128Mi

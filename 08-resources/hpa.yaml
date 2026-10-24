@@ -1,0 +1,28 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: podinfo
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: podinfo
+  minReplicas: 3
+  maxReplicas: 8
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60 # percent of the CPU request
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      tolerance: 0.05 # react to a 5 percent difference (the default is 10 percent)
+    scaleDown:
+      stabilizationWindowSeconds: 60 # the default is 300 seconds
+      policies:
+        - type: Pods
+          value: 2 # remove at most two pods
+          periodSeconds: 30 # every 30 seconds

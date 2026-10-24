@@ -1,0 +1,13 @@
+# A local cluster with one control plane node and two worker nodes.
+# kind v0.33.0 runs Kubernetes v1.37.0 on these nodes by default.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: k8s-guide
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      # Makes NodePort 30080 reachable as localhost:30080 (Part 5)
+      - containerPort: 30080
+        hostPort: 30080
+  - role: worker
+  - role: worker

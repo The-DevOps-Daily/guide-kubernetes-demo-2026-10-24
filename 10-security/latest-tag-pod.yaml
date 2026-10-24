@@ -1,0 +1,18 @@
+# Meets the restricted Pod Security Standard, but uses the :latest tag
+apiVersion: v1
+kind: Pod
+metadata:
+  name: latest-test
+spec:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 100
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: podinfo
+      image: ghcr.io/stefanprodan/podinfo:latest
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ['ALL']

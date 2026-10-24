@@ -1,0 +1,20 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: podinfo
+  labels:
+    release: monitoring
+spec:
+  groups:
+    - name: podinfo
+      rules:
+        - alert: PodinfoHighErrorRate
+          expr: |
+            sum(rate(http_requests_total{job="podinfo", status=~"5.."}[2m]))
+              / sum(rate(http_requests_total{job="podinfo"}[2m])) > 0.05
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: More than 5 percent of podinfo requests fail
+            description: '{{ $value | humanizePercentage }} of podinfo requests returned a 5xx status over the last 2 minutes.'

@@ -1,0 +1,10 @@
+# Values for the kube-prometheus-stack chart on a kind cluster.
+# kind binds these control plane components to 127.0.0.1, so Prometheus cannot scrape them.
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeEtcd:
+  enabled: false
+kubeProxy:
+  enabled: false

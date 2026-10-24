@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: podinfo
+  labels:
+    app: podinfo
+spec:
+  type: ClusterIP # the default: a stable virtual IP inside the cluster
+  selector:
+    app: podinfo # send traffic to ready pods with this label
+  ports:
+    - name: http
+      port: 80 # the port clients connect to
+      targetPort: http # the named container port (9898)

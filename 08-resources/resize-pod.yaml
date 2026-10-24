@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: resize-demo
+spec:
+  containers:
+    - name: podinfo
+      image: ghcr.io/stefanprodan/podinfo:6.15.0
+      resizePolicy:
+        - resourceName: cpu
+          restartPolicy: NotRequired # the default: apply a new CPU size without a restart
+        - resourceName: memory
+          restartPolicy: RestartContainer # restart the container to apply a new memory size
+      resources:
+        requests:
+          cpu: 100m
+          memory: 64Mi
+        limits:
+          cpu: 200m
+          memory: 128Mi

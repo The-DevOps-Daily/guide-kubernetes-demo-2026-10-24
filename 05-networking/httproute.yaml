@@ -1,0 +1,19 @@
+# Owned by the app team: how requests for podinfo reach its Service
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: podinfo
+spec:
+  parentRefs:
+    - name: public
+      namespace: gateway-infra
+  hostnames:
+    - podinfo.k8s-guide.example
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: podinfo
+          port: 80

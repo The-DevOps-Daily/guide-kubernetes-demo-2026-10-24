@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: defaults
+spec:
+  limits:
+    - type: Container
+      defaultRequest: # used when a container sets no request
+        cpu: 50m
+        memory: 64Mi
+      default: # used when a container sets no limit
+        memory: 256Mi
+      max: # reject containers that ask for more
+        memory: 1Gi

@@ -1,0 +1,30 @@
+# A test client that meets the restricted Pod Security Standard
+apiVersion: v1
+kind: Pod
+metadata:
+  name: client
+  labels:
+    role: client
+spec:
+  automountServiceAccountToken: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 100
+    runAsGroup: 101
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: client
+      image: ghcr.io/stefanprodan/podinfo:6.15.0 # has curl and nc
+      command: ['sleep', 'infinity']
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ['ALL']
+      resources:
+        requests:
+          cpu: 10m
+          memory: 16Mi
+        limits:
+          memory: 64Mi

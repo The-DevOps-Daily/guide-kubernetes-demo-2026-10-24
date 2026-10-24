@@ -9,7 +9,7 @@ cap p05-endpoints 'kubectl get endpoints podinfo'
 cap p05-client 'kubectl run client --image=curlimages/curl:8.23.0 --command -- sleep infinity'
 cap p05-client-wait 'kubectl wait --for=condition=Ready pod/client'
 cap p05-curl 'kubectl exec client -- curl -s http://podinfo/version'
-cap p05-spread "kubectl exec client -- sh -c 'for i in 1 2 3 4 5 6; do curl -s http://podinfo | grep hostname; done'"
+cap p05-spread "kubectl exec client -- sh -c 'for i in \$(seq 1 30); do curl -s http://podinfo | grep hostname; done' | sort | uniq -c"
 cap p05-dns 'kubectl exec client -- nslookup podinfo.demo.svc.cluster.local'
 cap p05-dns-short 'kubectl exec client -- curl -s http://podinfo.demo/version'
 cap p05-resolv 'kubectl exec client -- cat /etc/resolv.conf'

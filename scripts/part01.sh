@@ -3,7 +3,7 @@ cluster
 
 cap p01-nodes 'kubectl get nodes -o wide'
 cap p01-system-pods 'kubectl get pods -n kube-system -o wide'
-cap p01-readyz "kubectl get --raw='/readyz?verbose'"
+cap p01-readyz "kubectl get --raw='/readyz?verbose' | grep -E 'etcd|check'"
 cap p01-proxy-mode "kubectl -n kube-system get configmap kube-proxy -o jsonpath='{.data.config\.conf}' | grep 'mode:'"
 cap p01-api-resources 'kubectl api-resources --api-group=apps'
 cap p01-explain 'kubectl explain deployment.spec.replicas'

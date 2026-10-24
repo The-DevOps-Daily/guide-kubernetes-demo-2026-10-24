@@ -58,25 +58,23 @@ cap p08-loadgen-delete 'kubectl delete pod loadgen'
 must kubectl rollout status deployment/podinfo --timeout=180s
 settle app=podinfo
 
-cap p08-taint 'kubectl taint nodes k8s-guide-worker2 dedicated=batch:NoSchedule'
-cap p08-label 'kubectl label nodes k8s-guide-worker2 workload=batch'
+cap p08-nodes-set "NODE=\$(kubectl get pod cache-0 -o jsonpath='{.spec.nodeName}')
+if [ \"\$NODE\" = k8s-guide-worker ]; then OTHER=k8s-guide-worker2; else OTHER=k8s-guide-worker; fi
+echo \"cache-0 runs on \$NODE, the batch node is \$OTHER\""
+cap p08-taint 'kubectl taint nodes $OTHER dedicated=batch:NoSchedule'
+cap p08-label 'kubectl label nodes $OTHER workload=batch'
 cap p08-restart 'kubectl rollout restart deployment/podinfo'
 must kubectl rollout status deployment/podinfo --timeout=180s
 settle app=podinfo
-cap p08-after-taint 'kubectl get pods -l app=podinfo -o wide'
+cap p08-after-taint 'kubectl get pods -o wide'
 cap p08-batch-apply 'kubectl apply -f 08-resources/batch-pod.yaml'
 must kubectl wait --for=condition=Ready pod/batch-task --timeout=120s
 cap p08-batch-node "kubectl get pod batch-task -o jsonpath='{.spec.nodeName}{\"\\n\"}'"
-cap p08-untaint 'kubectl taint nodes k8s-guide-worker2 dedicated=batch:NoSchedule-'
+cap p08-untaint 'kubectl taint nodes $OTHER dedicated=batch:NoSchedule-'
 cap p08-batch-delete 'kubectl delete pod batch-task'
-cap p08-restart2 'kubectl rollout restart deployment/podinfo'
-must kubectl rollout status deployment/podinfo --timeout=180s
-settle app=podinfo
 
 cap p08-pdb-apply 'kubectl apply -f 08-resources/pdb.yaml'
 cap p08-pdb-get 'kubectl get pdb podinfo'
-cap p08-node-set "NODE=\$(kubectl get pod cache-0 -o jsonpath='{.spec.nodeName}'); echo \$NODE"
-cap p08-pods-before 'kubectl get pods -o wide'
 cap p08-drain 'kubectl drain $NODE --ignore-daemonsets --delete-emptydir-data --timeout=180s'
 must sleep 10
 cap p08-pods-after 'kubectl get pods -o wide'

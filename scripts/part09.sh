@@ -49,4 +49,4 @@ cap p09-rate "curl -s localhost:9090/api/v1/query --data-urlencode 'query=sum by
 must 'for i in $(seq 1 30); do s=$(curl -s localhost:9090/api/v1/alerts | jq -r ".data.alerts[] | select(.labels.alertname==\"PodinfoHighErrorRate\") | .state"); [ "$s" = firing ] && break; sleep 10; done'
 cap p09-alerts "curl -s localhost:9090/api/v1/alerts | jq -r '.data.alerts[] | select(.labels.alertname==\"PodinfoHighErrorRate\") | \"\\(.state) \\(.annotations.description)\"'"
 cap p09-cleanup 'kubectl delete pod errors'
-cap p09-pf-stop 'kill %1'
+cap p09-pf-stop 'pkill -f "kubectl port-forward"'

@@ -53,4 +53,4 @@ must kubectl rollout status statefulset/cache --timeout=120s
 cache_ready
 cap p07-read-again "curl -s -w ' [%{http_code}]\n' localhost:8080/cache/greeting"
 cap p07-node "kubectl get pod cache-0 -o jsonpath='{.spec.nodeName}{\"\\n\"}'"
-cap p07-pf-stop 'kill %1'
+cap p07-pf-stop 'pkill -f "kubectl port-forward"'

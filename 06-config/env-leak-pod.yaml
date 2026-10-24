@@ -1,0 +1,15 @@
+# The pattern to avoid: a Secret in an environment variable of an app that prints its environment
+apiVersion: v1
+kind: Pod
+metadata:
+  name: env-leak
+spec:
+  containers:
+    - name: podinfo
+      image: ghcr.io/stefanprodan/podinfo:6.15.0
+      env:
+        - name: API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: api-token
+              key: token

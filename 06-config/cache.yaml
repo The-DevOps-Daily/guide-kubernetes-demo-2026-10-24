@@ -1,3 +1,13 @@
+# Valkey's own configuration file, from a ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cache-config
+data:
+  valkey.conf: |
+    maxmemory 64mb
+    maxmemory-policy allkeys-lru
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -17,23 +27,24 @@ spec:
       containers:
         - name: valkey
           image: valkey/valkey:9.1.2-alpine
-          # Kubernetes replaces $(CACHE_PASSWORD) with the value of that variable
-          args: ['--requirepass', '$(CACHE_PASSWORD)']
-          env:
-            - name: CACHE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: cache-auth
-                  key: password
+          args: ['/etc/valkey/valkey.conf'] # start valkey-server with this file
           ports:
             - name: valkey
               containerPort: 6379
+          volumeMounts:
+            - name: config
+              mountPath: /etc/valkey
+              readOnly: true
           resources:
             requests:
               cpu: 50m
               memory: 64Mi
             limits:
               memory: 256Mi
+      volumes:
+        - name: config
+          configMap:
+            name: cache-config
 ---
 apiVersion: v1
 kind: Service

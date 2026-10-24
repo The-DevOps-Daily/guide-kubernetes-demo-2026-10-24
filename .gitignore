@@ -1,0 +1,3 @@
+# TLS files created in Part 6. Never commit private keys.
+*.key
+*.crt

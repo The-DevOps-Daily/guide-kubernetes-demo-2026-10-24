@@ -38,26 +38,27 @@ spec:
       containers:
         - name: valkey
           image: valkey/valkey:9.1.2-alpine
-          # --appendonly yes writes every change to /data
-          args: ['--requirepass', '$(CACHE_PASSWORD)', '--appendonly', 'yes']
-          env:
-            - name: CACHE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: cache-auth
-                  key: password
+          # --appendonly yes writes every change to a log file in /data
+          args: ['/etc/valkey/valkey.conf', '--appendonly', 'yes']
           ports:
             - name: valkey
               containerPort: 6379
           volumeMounts:
             - name: data
               mountPath: /data
+            - name: config
+              mountPath: /etc/valkey
+              readOnly: true
           resources:
             requests:
               cpu: 50m
               memory: 64Mi
             limits:
               memory: 256Mi
+      volumes:
+        - name: config
+          configMap:
+            name: cache-config
   # One PersistentVolumeClaim per pod: data-cache-0, data-cache-1, ...
   volumeClaimTemplates:
     - metadata:

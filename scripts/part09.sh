@@ -1,6 +1,7 @@
 # Part 9: logs, events, debugging, metrics and alerts.
 cluster
 state_p08
+settle app=podinfo
 
 cap p09-logs 'kubectl logs deployment/podinfo --tail=3'
 cap p09-logs-all 'kubectl logs -l app=podinfo --prefix --tail=1'
@@ -14,12 +15,10 @@ cap p09-last-state "kubectl get pod \$POD -o jsonpath='{.status.containerStatuse
 cap p09-broken-apply 'kubectl apply -f 09-observability/broken.yaml'
 must sleep 60
 cap p09-broken-get 'kubectl get pods -l lab=broken'
-cap p09-image-events 'kubectl events --for deployment/bad-image --types=Warning'
 cap p09-image-describe "kubectl describe pod -l app=bad-image | sed -n '/^Events:/,\$p'"
-cap p09-config-logs 'kubectl logs deployment/bad-config --previous'
+cap p09-config-logs 'kubectl logs deployment/bad-config'
 cap p09-config-describe "kubectl describe pod -l app=bad-config | grep -A 5 'Last State'"
 cap p09-pending-describe "kubectl describe pod -l app=no-node | sed -n '/^Events:/,\$p'"
-cap p09-warnings 'kubectl events --types=Warning'
 cap p09-broken-delete 'kubectl delete -f 09-observability/broken.yaml'
 
 cap p09-ready-off 'kubectl exec $POD -- curl -s -X POST localhost:9898/readyz/disable'
@@ -28,9 +27,13 @@ cap p09-ready-pods 'kubectl get pods -l app=podinfo'
 cap p09-ready-slices "kubectl get endpointslices -l kubernetes.io/service-name=podinfo -o jsonpath='{range .items[*].endpoints[*]}{.targetRef.name}{\"\\t\"}ready={.conditions.ready}{\"\\n\"}{end}'"
 cap p09-ready-on 'kubectl exec $POD -- curl -s -X POST localhost:9898/readyz/enable'
 
-cap p09-debug 'kubectl debug $POD --image=busybox:1.38.0 --target=podinfo --container=debugger --attach -- sh -c "ps; netstat -tln"'
-cap p09-debug-node 'kubectl debug node/k8s-guide-worker --image=busybox:1.38.0 --profile=general --attach -- ls /host/var/log/pods'
-cap p09-debug-cleanup 'kubectl delete pod -l app.kubernetes.io/managed-by=kubectl-debug'
+cap p09-debug 'kubectl debug $POD --image=busybox:1.38.0 --target=podinfo --container=debugger -- sh -c "ps; netstat -tln"'
+must sleep 10
+cap p09-debug-logs 'kubectl logs $POD -c debugger'
+cap p09-debug-node 'kubectl debug node/k8s-guide-worker --image=busybox:1.38.0 --profile=general -- ls /host/var/log/pods'
+must sleep 10
+cap p09-debug-node-logs "kubectl logs \$(kubectl get pods -o name | grep node-debugger)"
+cap p09-debug-cleanup "kubectl delete \$(kubectl get pods -o name | grep node-debugger)"
 cap p09-top 'kubectl top pods --containers'
 
 cap p09-helm 'helm install monitoring oci://ghcr.io/prometheus-community/charts/kube-prometheus-stack --version 92.11.0 --namespace monitoring --create-namespace --values 09-observability/monitoring-values.yaml --wait --timeout 10m'
@@ -45,6 +48,5 @@ must sleep 150
 cap p09-rate "curl -s localhost:9090/api/v1/query --data-urlencode 'query=sum by (status) (rate(http_requests_total{job=\"podinfo\"}[2m]))' | jq -r '.data.result[] | \"\\(.metric.status) \\(.value[1])\"'"
 must 'for i in $(seq 1 30); do s=$(curl -s localhost:9090/api/v1/alerts | jq -r ".data.alerts[] | select(.labels.alertname==\"PodinfoHighErrorRate\") | .state"); [ "$s" = firing ] && break; sleep 10; done'
 cap p09-alerts "curl -s localhost:9090/api/v1/alerts | jq -r '.data.alerts[] | select(.labels.alertname==\"PodinfoHighErrorRate\") | \"\\(.state) \\(.annotations.description)\"'"
-cap p09-grafana-pw "kubectl -n monitoring get secret monitoring-grafana -o jsonpath='{.data.admin-password}' | base64 -d; echo"
 cap p09-cleanup 'kubectl delete pod errors'
 cap p09-pf-stop 'kill %1'

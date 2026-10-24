@@ -26,9 +26,13 @@ spec:
         - name: podinfo
           image: ghcr.io/stefanprodan/podinfo:6.15.0
           command: ['./podinfo']
-          args: ['--config-path=/podinfo/config']
+          args:
+            - --config-path=/podinfo/config # the ConfigMap file
+            - --secure-port=8443 # HTTPS, with the key pair from the Secret
+            - --cert-path=/podinfo/tls
+            - --cache-server=tcp://cache:6379
           env:
-            # One key from the ConfigMap each
+            # Non-secret settings, one key from the ConfigMap each
             - name: PODINFO_UI_MESSAGE
               valueFrom:
                 configMapKeyRef:
@@ -39,20 +43,17 @@ spec:
                 configMapKeyRef:
                   name: podinfo-config
                   key: PODINFO_LEVEL
-            # The cache password from the Secret, then used inside the next value
-            - name: CACHE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: cache-auth
-                  key: password
-            - name: PODINFO_CACHE_SERVER
-              value: tcp://default:$(CACHE_PASSWORD)@cache:6379
           ports:
             - name: http
               containerPort: 9898
+            - name: https
+              containerPort: 8443
           volumeMounts:
             - name: config
               mountPath: /podinfo/config
+              readOnly: true
+            - name: tls # the Secret, as files: tls.crt and tls.key
+              mountPath: /podinfo/tls
               readOnly: true
           readinessProbe:
             httpGet:
@@ -77,3 +78,6 @@ spec:
             items: # only this key becomes a file
               - key: features.yaml
                 path: features.yaml
+        - name: tls
+          secret:
+            secretName: podinfo-tls

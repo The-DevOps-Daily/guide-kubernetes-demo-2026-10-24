@@ -20,7 +20,9 @@ cap p03-exec-id 'kubectl exec podinfo -- id'
 cap p03-exec-ps 'kubectl exec podinfo -- ps'
 cap p03-pod-ip-set "POD_IP=\$(kubectl get pod podinfo -o jsonpath='{.status.podIP}')"
 cap p03-pod-ip 'echo $POD_IP'
-cap p03-run-curl 'kubectl run curl --image=curlimages/curl:8.23.0 --rm -i --restart=Never -- curl -s http://$POD_IP:9898/version'
+cap p03-client 'kubectl run client --image=curlimages/curl:8.23.0 --command -- sleep infinity'
+cap p03-client-wait 'kubectl wait --for=condition=Ready pod/client'
+cap p03-client-curl 'kubectl exec client -- curl -s http://$POD_IP:9898/version'
 
 cap p03-sidecar-apply 'kubectl apply -f 03-pods/pod-sidecar.yaml'
 cap p03-sidecar-get-init 'kubectl get pod podinfo-sidecar'
@@ -36,4 +38,4 @@ cap p03-fail-get 'kubectl get pod fail'
 cap p03-fail-exit "kubectl get pod fail -o jsonpath='{.status.containerStatuses[0].state.terminated.exitCode}{\"\\n\"}'"
 cap p03-fail-logs 'kubectl logs fail'
 
-cap p03-delete 'kubectl delete pod podinfo podinfo-sidecar fail'
+cap p03-delete 'kubectl delete pod podinfo podinfo-sidecar fail client'

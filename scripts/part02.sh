@@ -6,6 +6,8 @@ cap p02-helm-version 'helm version'
 cap p02-create 'kind create cluster --config kind-config.yaml'
 cap p02-cluster-info 'kubectl cluster-info --context kind-k8s-guide'
 cap p02-nodes 'kubectl get nodes'
+cap p02-wait 'kubectl wait --for=condition=Ready nodes --all --timeout=120s'
+cap p02-nodes-ready 'kubectl get nodes'
 cap p02-nodes-wide 'kubectl get nodes -o wide'
 cap p02-version 'kubectl version'
 cap p02-docker-ps "docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Ports}}'"

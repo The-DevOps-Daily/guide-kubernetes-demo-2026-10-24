@@ -10,10 +10,15 @@ spec:
   hostnames:
     - podinfo.k8s-guide.example
   rules:
+    # Only the paths clients need. podinfo also has debug endpoints, such as
+    # /env, /configs and /panic, that must never be reachable from outside.
     - matches:
         - path:
-            type: PathPrefix
+            type: Exact
             value: /
+        - path:
+            type: Exact
+            value: /version
       backendRefs:
         - name: podinfo
           port: 80

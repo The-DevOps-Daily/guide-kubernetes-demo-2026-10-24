@@ -35,8 +35,23 @@ must() {
 # A cluster like the one Part 2 creates, with the demo namespace selected.
 cluster() {
   must kind create cluster --config kind-config.yaml --wait 180s
+  must kubectl wait --for=condition=Ready nodes --all --timeout=180s
+  must kubectl wait -n kube-system --for=condition=Ready pods --all --timeout=180s
   must kubectl create namespace demo
   must kubectl config set-context --current --namespace=demo
+}
+
+# Waits until no pod with this label selector is terminating.
+settle() {
+  local i
+  for i in $(seq 1 90); do
+    if [ -z "$(kubectl get pods -l "$1" -o jsonpath='{range .items[*]}{.metadata.deletionTimestamp}{end}')" ]; then
+      return 0
+    fi
+    sleep 2
+  done
+  echo "::error::pods $1 are still terminating"
+  exit 1
 }
 
 # The state at the end of Part 4: podinfo 6.15.0 with three replicas.
@@ -44,6 +59,7 @@ state_p04() {
   must kubectl apply -f 04-deployments/deployment.yaml
   must kubectl set image deployment/podinfo podinfo=ghcr.io/stefanprodan/podinfo:6.15.0
   must kubectl rollout status deployment/podinfo --timeout=180s
+  settle app=podinfo
 }
 
 # The state at the end of Part 5: plus the podinfo Service.
@@ -52,13 +68,15 @@ state_p05() {
   must kubectl apply -f 05-networking/service.yaml
 }
 
-# The state at the end of Part 6: plus the cache, its password and the configured podinfo.
+# The state at the end of Part 6: plus the cache, the TLS Secret and the configured podinfo.
 state_p06() {
   state_p05
-  must 'kubectl create secret generic cache-auth --from-literal=password="$(openssl rand -hex 16)"'
+  must 'openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -days 30 -keyout tls.key -out tls.crt -subj "/CN=podinfo.demo.svc" -addext "subjectAltName=DNS:podinfo.demo.svc,DNS:localhost"'
+  must kubectl create secret tls podinfo-tls --cert=tls.crt --key=tls.key
   must kubectl apply -f 06-config/cache.yaml -f 06-config/configmap.yaml -f 06-config/deployment.yaml
   must kubectl rollout status deployment/cache --timeout=180s
   must kubectl rollout status deployment/podinfo --timeout=180s
+  settle app=podinfo
 }
 
 # The state at the end of Part 7: the cache runs as a StatefulSet with a volume.
@@ -82,4 +100,5 @@ state_p08() {
   must kubectl apply -f 08-resources/limitrange.yaml -f 08-resources/resourcequota.yaml
   must kubectl apply -f 08-resources/deployment.yaml -f 08-resources/hpa.yaml -f 08-resources/pdb.yaml
   must kubectl rollout status deployment/podinfo --timeout=180s
+  settle app=podinfo
 }

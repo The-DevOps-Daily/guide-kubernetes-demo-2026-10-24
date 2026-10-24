@@ -17,7 +17,7 @@ must 'for i in $(seq 1 30); do curl -sf -m 2 --resolve podinfo.k8s-guide.example
 cap p10-whoami 'kubectl auth whoami'
 cap p10-psa-dry 'kubectl label --dry-run=server --overwrite namespace demo pod-security.kubernetes.io/enforce=restricted'
 cap p10-psa-warn 'kubectl label --overwrite namespace demo pod-security.kubernetes.io/warn=restricted pod-security.kubernetes.io/audit=restricted'
-cap p10-warn-apply 'kubectl apply -f 08-resources/deployment.yaml'
+cap p10-warn-run 'kubectl run test --image=busybox:1.38.0 --dry-run=server -- sleep 60'
 
 cap p10-nonroot-apply 'kubectl apply -f 10-security/nonroot-test.yaml'
 must sleep 15
@@ -34,6 +34,8 @@ cap p10-sts-status 'kubectl rollout status statefulset/cache'
 cap p10-id-after 'kubectl exec deploy/podinfo -- id'
 cap p10-ro-root 'kubectl exec deploy/podinfo -- touch /home/app/test'
 cap p10-no-token 'kubectl exec deploy/podinfo -- ls /var/run/secrets/kubernetes.io/serviceaccount'
+cap p10-tls-perms 'kubectl exec deploy/podinfo -- ls -lL /podinfo/tls'
+settle app=podinfo
 cap p10-enforce 'kubectl label --overwrite namespace demo pod-security.kubernetes.io/enforce=restricted'
 cap p10-run-blocked 'kubectl run curl --image=curlimages/curl:8.23.0 --rm -i --restart=Never -- curl -s http://podinfo/version'
 
@@ -53,6 +55,10 @@ cap p10-after-podinfo 'kubectl exec client -- curl -s -m 3 http://podinfo/versio
 cap p10-after-cache 'kubectl exec client -- nc -z -v -w 3 cache 6379'
 cap p10-after-app-cache 'kubectl exec deploy/podinfo -- nc -z -v -w 3 cache 6379'
 cap p10-after-gateway 'curl -s -m 5 --resolve podinfo.k8s-guide.example:80:$GW_IP http://podinfo.k8s-guide.example/version; echo "curl exit code: $?"'
+cap p10-kind-subnet "docker network inspect kind --format '{{range .IPAM.Config}}{{.Subnet}} {{end}}'"
+cap p10-np-kind 'kubectl apply -f 10-security/networkpolicy-kind-gateway.yaml'
+must sleep 5
+cap p10-after-kind-np 'curl -s -m 5 --resolve podinfo.k8s-guide.example:80:$GW_IP http://podinfo.k8s-guide.example/version; echo "curl exit code: $?"'
 cap p10-np-get 'kubectl get networkpolicy'
 
 cap p10-vap-apply 'kubectl apply -f 10-security/admission-policy.yaml'
@@ -60,8 +66,7 @@ must sleep 5
 cap p10-vap-deny 'kubectl apply -f 10-security/latest-tag-pod.yaml'
 cap p10-vap-allow 'kubectl apply -f 10-security/client.yaml --dry-run=server'
 
-cap p10-etcd 'kubectl -n kube-system exec etcd-k8s-guide-control-plane -- etcdctl --endpoints=https://127.0.0.1:2379 --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/server.crt --key=/etc/kubernetes/pki/etcd/server.key get /registry/secrets/demo/cache-auth --print-value-only | strings | grep -A 1 password'
-cap p10-secret-value "kubectl get secret cache-auth -o jsonpath='{.data.password}' | base64 -d; echo"
+cap p10-etcd 'kubectl -n kube-system exec etcd-k8s-guide-control-plane -- etcdctl --endpoints=https://127.0.0.1:2379 --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/server.crt --key=/etc/kubernetes/pki/etcd/server.key get /registry/secrets/demo/podinfo-tls --print-value-only | strings | grep "PRIVATE KEY"'
 
 cap p10-image-id "kubectl get pods -l app=podinfo -o jsonpath='{.items[0].status.containerStatuses[0].imageID}{\"\\n\"}'"
 cap p10-cosign 'cosign verify ghcr.io/stefanprodan/podinfo:6.15.0 --certificate-identity=https://github.com/stefanprodan/podinfo/.github/workflows/release.yml@refs/tags/6.15.0 --certificate-oidc-issuer=https://token.actions.githubusercontent.com > /dev/null'

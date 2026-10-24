@@ -61,10 +61,10 @@ cap p10-np-kind 'kubectl apply -f 10-security/networkpolicy-kind-gateway.yaml'
 must sleep 5
 cap p10-after-kind-np 'curl -s -m 5 --resolve podinfo.k8s-guide.example:80:$GW_IP http://podinfo.k8s-guide.example/version; echo "curl exit code: $?"'
 cap p10-np-get 'kubectl get networkpolicy'
-must 'kubectl port-forward -n monitoring service/monitoring-kube-prometheus-prometheus 9090:9090 > /dev/null 2>&1 & PF=$!'
-must sleep 45
-cap p10-prom-up "curl -s localhost:9090/api/v1/query --data-urlencode 'query=up{job=\"podinfo\"}' | jq -r '.data.result[] | \"\\(.metric.pod) up=\\(.value[1])\"'"
-must 'kill $PF'
+cap p10-prom-pf 'kubectl port-forward -n monitoring service/monitoring-kube-prometheus-prometheus 9090:9090 > /dev/null 2>&1 & PF=$!'
+cap p10-prom-sleep 'sleep 45'
+cap p10-prom-up "curl -s --retry 5 --retry-connrefused --retry-delay 1 localhost:9090/api/v1/query --data-urlencode 'query=up{job=\"podinfo\"}' | jq -r '.data.result[] | \"\\(.metric.pod) up=\\(.value[1])\"'"
+cap p10-prom-pf-stop 'kill $PF'
 
 cap p10-vap-apply 'kubectl apply -f 10-security/admission-policy.yaml'
 must sleep 5

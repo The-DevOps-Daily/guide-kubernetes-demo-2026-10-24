@@ -9,8 +9,16 @@ spec:
     - host: podinfo.k8s-guide.example
       http:
         paths:
+          # Only the public paths, as in the HTTPRoute
           - path: /
-            pathType: Prefix
+            pathType: Exact
+            backend:
+              service:
+                name: podinfo
+                port:
+                  number: 80
+          - path: /version
+            pathType: Exact
             backend:
               service:
                 name: podinfo

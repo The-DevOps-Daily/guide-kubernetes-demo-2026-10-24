@@ -24,12 +24,12 @@ cap p08-oom-state "kubectl get pod memory-hog -o jsonpath='{.status.containerSta
 cap p08-oom-delete 'kubectl delete pod memory-hog'
 
 cap p08-resize-apply 'kubectl apply -f 08-resources/resize-pod.yaml'
-must kubectl wait --for=condition=Ready pod/resize-demo --timeout=120s
+cap p08-resize-wait 'kubectl wait --for=condition=Ready pod/resize-demo --timeout=120s'
 cap p08-resize-cpu "kubectl patch pod resize-demo --subresource resize --patch '{\"spec\":{\"containers\":[{\"name\":\"podinfo\",\"resources\":{\"requests\":{\"cpu\":\"300m\"},\"limits\":{\"cpu\":\"500m\"}}}]}}'"
-must sleep 5
+cap p08-resize-cpu-wait "kubectl wait --for=jsonpath='{.status.containerStatuses[0].resources.requests.cpu}'=300m pod/resize-demo --timeout=60s"
 cap p08-resize-status "kubectl get pod resize-demo -o jsonpath='{.status.containerStatuses[0].resources}{\"\\n\"}restarts: {.status.containerStatuses[0].restartCount}{\"\\n\"}'"
 cap p08-resize-mem "kubectl patch pod resize-demo --subresource resize --patch '{\"spec\":{\"containers\":[{\"name\":\"podinfo\",\"resources\":{\"requests\":{\"memory\":\"128Mi\"},\"limits\":{\"memory\":\"256Mi\"}}}]}}'"
-must sleep 10
+cap p08-resize-mem-wait "kubectl wait --for=jsonpath='{.status.containerStatuses[0].resources.requests.memory}'=128Mi pod/resize-demo --timeout=60s"
 cap p08-resize-status2 "kubectl get pod resize-demo -o jsonpath='{.status.containerStatuses[0].resources}{\"\\n\"}restarts: {.status.containerStatuses[0].restartCount}{\"\\n\"}'"
 cap p08-resize-big "kubectl patch pod resize-demo --subresource resize --patch '{\"spec\":{\"containers\":[{\"name\":\"podinfo\",\"resources\":{\"requests\":{\"cpu\":\"64\"},\"limits\":{\"cpu\":\"64\"}}}]}}'"
 cap p08-resize-delete 'kubectl delete pod resize-demo'

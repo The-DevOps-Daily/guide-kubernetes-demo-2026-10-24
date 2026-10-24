@@ -39,6 +39,7 @@ cap p05-route-get 'kubectl get httproute'
 cap p05-route-status "kubectl get httproute podinfo -o jsonpath='{range .status.parents[0].conditions[*]}{.type}={.status} ({.reason}){\"\\n\"}{end}'"
 cap p05-gw-ip-set "GW_IP=\$(kubectl get gateway public -n gateway-infra -o jsonpath='{.status.addresses[0].value}')"
 cap p05-gw-curl 'curl -sf --retry 10 --retry-all-errors --retry-delay 1 --resolve podinfo.k8s-guide.example:80:$GW_IP http://podinfo.k8s-guide.example/version'
+cap p05-gw-docker 'docker run --rm --network kind curlimages/curl:8.23.0 -s --resolve podinfo.k8s-guide.example:80:$GW_IP http://podinfo.k8s-guide.example/version'
 cap p05-gw-env 'curl -s -o /dev/null -w "%{http_code}\n" --resolve podinfo.k8s-guide.example:80:$GW_IP http://podinfo.k8s-guide.example/env'
 cap p05-gw-404 'curl -s -o /dev/null -w "%{http_code}\n" --resolve other.k8s-guide.example:80:$GW_IP http://other.k8s-guide.example/'
 

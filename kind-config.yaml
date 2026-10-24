@@ -6,8 +6,9 @@ name: k8s-guide
 nodes:
   - role: control-plane
     extraPortMappings:
-      # Makes NodePort 30080 reachable as localhost:30080 (Part 5)
+      # Makes NodePort 30080 reachable as localhost:30080 (Part 5), and only from this computer
       - containerPort: 30080
         hostPort: 30080
+        listenAddress: '127.0.0.1'
   - role: worker
   - role: worker

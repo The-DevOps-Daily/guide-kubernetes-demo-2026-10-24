@@ -7,10 +7,9 @@ cache_ready() {
   must 'for i in $(seq 1 40); do curl -s -X POST -d ok localhost:8080/cache/check >/dev/null; [ "$(curl -s localhost:8080/cache/check)" = ok ] && break; sleep 3; done; [ "$(curl -s localhost:8080/cache/check)" = ok ]'
 }
 
-cap p07-pf 'kubectl port-forward service/podinfo 8080:80 > /dev/null 2>&1 &'
-must sleep 3
+cap p07-pf 'kubectl port-forward service/podinfo 8080:80 > /dev/null 2>&1 & PF=$!'
+cap p07-write 'curl -s --retry 5 --retry-connrefused --retry-delay 1 -X POST -d "hello from the cache" localhost:8080/cache/greeting'
 cache_ready
-cap p07-write 'curl -s -X POST -d "hello from the cache" localhost:8080/cache/greeting'
 cap p07-read "curl -s -w ' [%{http_code}]\n' localhost:8080/cache/greeting"
 cap p07-delete-cache 'kubectl delete pod -l app=cache'
 cap p07-cache-rollout 'kubectl rollout status deployment/cache'
@@ -38,7 +37,9 @@ cap p07-sts-apply 'kubectl apply -f 07-storage/statefulset.yaml'
 cap p07-sts-status 'kubectl rollout status statefulset/cache'
 cap p07-sts-get 'kubectl get statefulset,pods,pvc -l app=cache'
 cache_ready
+cap p07-sts-check0 "curl -s -X POST -d ok localhost:8080/cache/check && curl -s -w ' [%{http_code}]\n' localhost:8080/cache/check"
 cap p07-sts-write 'curl -s -X POST -d "survives restarts" localhost:8080/cache/greeting'
+cap p07-sts-write-read "curl -s -w ' [%{http_code}]\n' localhost:8080/cache/greeting"
 cap p07-sts-delete-pod 'kubectl delete pod cache-0'
 cap p07-sts-wait 'kubectl rollout status statefulset/cache'
 cache_ready
@@ -49,11 +50,12 @@ cap p07-sts-cli 'kubectl exec cache-0 -- valkey-cli GET greeting'
 cap p07-dns 'kubectl exec deploy/podinfo -- nslookup cache-0.cache-headless.demo.svc.cluster.local'
 cap p07-expand "kubectl patch pvc data-cache-0 -p '{\"spec\":{\"resources\":{\"requests\":{\"storage\":\"2Gi\"}}}}'"
 cap p07-scale-zero 'kubectl scale statefulset cache --replicas=0'
-must 'kubectl wait --for=delete pod/cache-0 --timeout=120s'
+cap p07-scale-zero-wait 'kubectl wait --for=delete pod/cache-0 --timeout=120s'
 cap p07-pvc-kept 'kubectl get pvc'
 cap p07-scale-one 'kubectl scale statefulset cache --replicas=1'
 cap p07-scale-rollout 'kubectl rollout status statefulset/cache'
 cache_ready
+cap p07-scale-check "curl -s -X POST -d ok localhost:8080/cache/check && curl -s -w ' [%{http_code}]\n' localhost:8080/cache/check"
 cap p07-read-again "curl -s -w ' [%{http_code}]\n' localhost:8080/cache/greeting"
 cap p07-node "kubectl get pod cache-0 -o jsonpath='{.spec.nodeName}{\"\\n\"}'"
-cap p07-pf-stop 'pkill -f "kubectl port-forward"'
+cap p07-pf-stop 'kill $PF'

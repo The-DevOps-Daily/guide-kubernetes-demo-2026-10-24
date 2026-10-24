@@ -47,7 +47,7 @@ cap p10-can-i-list 'kubectl auth can-i --list --as=system:serviceaccount:demo:de
 cap p10-token 'kubectl create token deployer --duration=10m | cut -c1-40'
 
 cap p10-client-apply 'kubectl apply -f 10-security/client.yaml'
-must kubectl wait --for=condition=Ready pod/client --timeout=120s
+cap p10-client-wait 'kubectl wait --for=condition=Ready pod/client'
 cap p10-before-podinfo 'kubectl exec client -- curl -s -m 3 http://podinfo/version'
 cap p10-before-cache 'kubectl exec client -- nc -z -v -w 3 cache 6379'
 cap p10-np-apply 'kubectl apply -f 10-security/networkpolicy.yaml'
@@ -61,10 +61,10 @@ cap p10-np-kind 'kubectl apply -f 10-security/networkpolicy-kind-gateway.yaml'
 must sleep 5
 cap p10-after-kind-np 'curl -s -m 5 --resolve podinfo.k8s-guide.example:80:$GW_IP http://podinfo.k8s-guide.example/version; echo "curl exit code: $?"'
 cap p10-np-get 'kubectl get networkpolicy'
-must 'kubectl port-forward -n monitoring service/monitoring-kube-prometheus-prometheus 9090:9090 > /dev/null 2>&1 &'
+must 'kubectl port-forward -n monitoring service/monitoring-kube-prometheus-prometheus 9090:9090 > /dev/null 2>&1 & PF=$!'
 must sleep 45
 cap p10-prom-up "curl -s localhost:9090/api/v1/query --data-urlencode 'query=up{job=\"podinfo\"}' | jq -r '.data.result[] | \"\\(.metric.pod) up=\\(.value[1])\"'"
-must 'pkill -f "kubectl port-forward"'
+must 'kill $PF'
 
 cap p10-vap-apply 'kubectl apply -f 10-security/admission-policy.yaml'
 must sleep 5

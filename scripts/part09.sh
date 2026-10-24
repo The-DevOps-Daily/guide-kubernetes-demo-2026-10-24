@@ -39,7 +39,7 @@ cap p09-top 'kubectl top pods --containers'
 cap p09-helm 'helm install monitoring oci://ghcr.io/prometheus-community/charts/kube-prometheus-stack --version 92.11.0 --namespace monitoring --create-namespace --values 09-observability/monitoring-values.yaml --wait --timeout 10m'
 cap p09-mon-pods 'kubectl get pods -n monitoring'
 cap p09-sm-apply 'kubectl apply -f 09-observability/servicemonitor.yaml -f 09-observability/prometheusrule.yaml'
-cap p09-pf 'kubectl port-forward -n monitoring service/monitoring-kube-prometheus-prometheus 9090:9090 > /dev/null 2>&1 &'
+cap p09-pf 'kubectl port-forward -n monitoring service/monitoring-kube-prometheus-prometheus 9090:9090 > /dev/null 2>&1 & PF=$!'
 must sleep 5
 must 'for i in $(seq 1 40); do n=$(curl -s localhost:9090/api/v1/query --data-urlencode "query=up{job=\"podinfo\"}" | jq ".data.result | length"); [ "$n" -ge 3 ] && break; sleep 5; done'
 cap p09-up "curl -s localhost:9090/api/v1/query --data-urlencode 'query=up{job=\"podinfo\"}' | jq -r '.data.result[] | \"\\(.metric.pod) up=\\(.value[1])\"'"
@@ -49,4 +49,4 @@ cap p09-rate "curl -s localhost:9090/api/v1/query --data-urlencode 'query=sum by
 must 'for i in $(seq 1 30); do s=$(curl -s localhost:9090/api/v1/alerts | jq -r ".data.alerts[] | select(.labels.alertname==\"PodinfoHighErrorRate\") | .state"); [ "$s" = firing ] && break; sleep 10; done'
 cap p09-alerts "curl -s localhost:9090/api/v1/alerts | jq -r '.data.alerts[] | select(.labels.alertname==\"PodinfoHighErrorRate\") | \"\\(.state) \\(.annotations.description)\"'"
 cap p09-cleanup 'kubectl delete pod errors'
-cap p09-pf-stop 'pkill -f "kubectl port-forward"'
+cap p09-pf-stop 'kill $PF'

@@ -64,7 +64,7 @@ echo \"cache-0 runs on \$NODE, the batch node is \$OTHER\""
 cap p08-taint 'kubectl taint nodes $OTHER dedicated=batch:NoSchedule'
 cap p08-label 'kubectl label nodes $OTHER workload=batch'
 cap p08-restart 'kubectl rollout restart deployment/podinfo'
-must kubectl rollout status deployment/podinfo --timeout=180s
+cap p08-restart-status 'kubectl rollout status deployment/podinfo'
 settle app=podinfo
 cap p08-after-taint 'kubectl get pods -o wide'
 cap p08-batch-apply 'kubectl apply -f 08-resources/batch-pod.yaml'

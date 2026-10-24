@@ -1,16 +1,21 @@
 # StorageClasses for managed clusters. Each needs that provider's CSI driver,
-# which the managed service installs for you.
+# which the managed service installs or offers as an add-on.
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-  name: ebs-gp3 # Amazon EKS with the EBS CSI driver add-on
-provisioner: ebs.csi.aws.com
+  name: ebs-gp3 # Amazon EKS Auto Mode, as created in Part 2
+provisioner: ebs.csi.eks.amazonaws.com # with the EBS CSI driver add-on instead: ebs.csi.aws.com
 parameters:
   type: gp3
   encrypted: 'true'
 reclaimPolicy: Delete
 allowVolumeExpansion: true
 volumeBindingMode: WaitForFirstConsumer
+allowedTopologies:
+  - matchLabelExpressions:
+      - key: eks.amazonaws.com/compute-type
+        operator: In
+        values: ['auto']
 ---
 apiVersion: storage.k8s.io/v1
 kind: StorageClass

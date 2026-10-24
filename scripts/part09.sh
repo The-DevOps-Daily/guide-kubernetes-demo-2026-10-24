@@ -39,7 +39,7 @@ cap p09-top 'kubectl top pods --containers'
 cap p09-helm 'helm install monitoring oci://ghcr.io/prometheus-community/charts/kube-prometheus-stack --version 92.11.0 --namespace monitoring --create-namespace --values 09-observability/monitoring-values.yaml --wait --timeout 10m'
 cap p09-mon-pods 'kubectl get pods -n monitoring'
 cap p09-sm-apply 'kubectl apply -f 09-observability/servicemonitor.yaml -f 09-observability/prometheusrule.yaml'
-cap p09-pf 'kubectl -n monitoring port-forward service/monitoring-kube-prometheus-prometheus 9090:9090 > /dev/null 2>&1 &'
+cap p09-pf 'kubectl port-forward -n monitoring service/monitoring-kube-prometheus-prometheus 9090:9090 > /dev/null 2>&1 &'
 must sleep 5
 must 'for i in $(seq 1 40); do n=$(curl -s localhost:9090/api/v1/query --data-urlencode "query=up{job=\"podinfo\"}" | jq ".data.result | length"); [ "$n" -ge 3 ] && break; sleep 5; done'
 cap p09-up "curl -s localhost:9090/api/v1/query --data-urlencode 'query=up{job=\"podinfo\"}' | jq -r '.data.result[] | \"\\(.metric.pod) up=\\(.value[1])\"'"
